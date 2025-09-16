@@ -10,7 +10,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
-func TestGetProfile(t *testing.T) {
+func TestGetProfileOK(t *testing.T) {
 	loc := time.FixedZone("UTC", 0)
 	joined := time.Date(2010, 01, 18, 8, 49, 30, 0, loc)
 	sample := twitterscraper.Profile{
@@ -64,27 +64,25 @@ func TestGetProfile(t *testing.T) {
 }
 
 func TestGetProfilePrivate(t *testing.T) {
-	loc := time.FixedZone("UTC", 0)
-	joined := time.Date(2020, 1, 26, 0, 3, 5, 0, loc)
+	joined := time.Date(2016, 8, 23, 16, 9, 17, 0, time.UTC)
 	sample := twitterscraper.Profile{
-		Avatar:    "https://pbs.twimg.com/profile_images/1612213936082030594/_HEsjv7Q_normal.jpg",
-		Banner:    "https://pbs.twimg.com/profile_banners/1221221876849995777/1673110776",
-		Biography: "t h e h e r m i t",
+		Avatar:    "https://pbs.twimg.com/profile_images/768120429143744512/D-tFFNO8_normal.jpg",
+		Biography: "The best job in the world is hobby which get paid. Sometimes logic technique can be more dangerous then using tools",
 		//	Birthday:   "March 21",
 		IsPrivate:      true,
 		IsVerified:     false,
 		Joined:         &joined,
-		Location:       "sometimes",
-		Name:           "private account",
+		Location:       "in-front LCD Monitor",
+		Name:           "▓▬▓ eidelweiss ▓▬▓",
 		PinnedTweetIDs: []string{},
-		URL:            "https://twitter.com/tomdumont",
-		UserID:         "1221221876849995777",
-		Username:       "tomdumont",
-		Website:        "",
+		URL:            "https://twitter.com/dummysystems",
+		UserID:         "768117919930691586",
+		Username:       "dummysystems",
+		Website:        "http://eidelweiss-advisories.blogspot.com",
 	}
 
 	// some random private profile (found via google)
-	profile, err := testScraper.GetProfile("tomdumont")
+	profile, err := testScraper.GetProfile("dummysystems")
 	if err != nil {
 		t.Error(err)
 	}
@@ -139,12 +137,12 @@ func TestGetProfileErrorNotFound(t *testing.T) {
 }
 
 func TestGetProfileByID(t *testing.T) {
-	profile, err := testScraper.GetProfileByID("1221221876849995777")
+	profile, err := testScraper.GetProfileByID("768117919930691586")
 	if err != nil {
 		t.Error(err)
 	}
 
-	if profile.Username != "tomdumont" {
+	if profile.Username != "dummysystems" {
 		t.Errorf("Expected username 'tomdumont', got '%s'", profile.Username)
 	}
 }

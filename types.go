@@ -24,6 +24,18 @@ type (
 		URL string
 	}
 
+	avatar struct {
+		ImageUrl string `json:"image_url"`
+	}
+
+	location struct {
+		Location string `json:"location"`
+	}
+
+	privacy struct {
+		Protected bool `json:"protected"`
+	}
+
 	// Video type.
 	Video struct {
 		ID      string

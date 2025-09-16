@@ -52,8 +52,12 @@ type user struct {
 			Result struct {
 				RestID         string     `json:"rest_id"`
 				Legacy         legacyUser `json:"legacy"`
+				Core           legacyUser `json:"core"`
 				Message        string     `json:"message"`
 				IsBlueVerified bool       `json:"is_blue_verified"`
+				Avatar         avatar     `json:"avatar"`
+				Location       location   `json:"location"`
+				Privacy        privacy    `json:"privacy"`
 			} `json:"result"`
 		} `json:"user"`
 	} `json:"data"`
@@ -65,7 +69,7 @@ type user struct {
 // GetProfile return parsed user profile.
 func (s *Scraper) GetProfile(username string) (Profile, error) {
 	var jsn user
-	req, err := http.NewRequest("GET", "https://api.twitter.com/graphql/Yka-W8dz7RaEuQNkroPkYw/UserByScreenName", nil)
+	req, err := http.NewRequest("GET", "https://api.twitter.com/graphql/96tVxbPqMZDoYB5pmzezKA/UserByScreenName", nil)
 	if err != nil {
 		return Profile{}, err
 	}
@@ -88,6 +92,8 @@ func (s *Scraper) GetProfile(username string) (Profile, error) {
 		"creator_subscriptions_tweet_preview_api_enabled":                   true,
 		"responsive_web_graphql_skip_user_profile_image_extensions_enabled": false,
 		"responsive_web_graphql_timeline_navigation_enabled":                true,
+		"payments_enabled": false,
+		"profile_label_improvements_pcf_label_in_post_enabled": true,
 	}
 
 	query := url.Values{}
@@ -99,6 +105,9 @@ func (s *Scraper) GetProfile(username string) (Profile, error) {
 	if err != nil {
 		return Profile{}, err
 	}
+
+	//j, _ := json.MarshalIndent(jsn, " ", "\t")
+	//fmt.Printf("%s\n\n", j)
 
 	if len(jsn.Errors) > 0 && jsn.Data.User.Result.RestID == "" {
 		if strings.Contains(jsn.Errors[0].Message, "Missing LdapGroup(visibility-custom-suspension)") {
@@ -114,6 +123,21 @@ func (s *Scraper) GetProfile(username string) (Profile, error) {
 		return Profile{}, fmt.Errorf("user not found")
 	}
 	jsn.Data.User.Result.Legacy.IDStr = jsn.Data.User.Result.RestID
+
+	if jsn.Data.User.Result.Core.ScreenName != "" {
+		jsn.Data.User.Result.Legacy.ScreenName = jsn.Data.User.Result.Core.ScreenName
+		jsn.Data.User.Result.Legacy.Name = jsn.Data.User.Result.Core.Name
+		jsn.Data.User.Result.Legacy.CreatedAt = jsn.Data.User.Result.Core.CreatedAt
+	}
+	if jsn.Data.User.Result.Avatar.ImageUrl != "" {
+		jsn.Data.User.Result.Legacy.ProfileImageURLHTTPS = jsn.Data.User.Result.Avatar.ImageUrl
+	}
+	if jsn.Data.User.Result.Location.Location != "" {
+		jsn.Data.User.Result.Legacy.Location = jsn.Data.User.Result.Location.Location
+	}
+	if jsn.Data.User.Result.Privacy.Protected {
+		jsn.Data.User.Result.Legacy.Protected = jsn.Data.User.Result.Privacy.Protected
+	}
 
 	if jsn.Data.User.Result.Legacy.ScreenName == "" {
 		return Profile{}, fmt.Errorf("either @%s does not exist or is private", username)
