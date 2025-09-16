@@ -5,18 +5,31 @@ import (
 	"errors"
 	"net"
 	"net/http"
+	"net/http/cookiejar"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
+
+	"golang.org/x/net/proxy"
 )
 
 // Scraper object
 type Scraper struct {
+	bearerToken    string
 	client         *http.Client
+	delay          int64
 	guestToken     string
 	guestCreatedAt time.Time
 	includeReplies bool
+	isLogged       bool
+	isOpenAccount  bool
+	oAuthToken     string
+	oAuthSecret    string
+	proxy          string
+	userAgent      string
 	searchMode     SearchMode
+	wg             sync.WaitGroup
 }
 
 // SearchMode type
@@ -31,15 +44,35 @@ const (
 	SearchPhotos
 	// SearchVideos - video mode
 	SearchVideos
+	// SearchUsers - user mode
+	SearchUsers
 )
 
-var defaultScraper *Scraper
+// default http client timeout
+const DefaultClientTimeout = 10 * time.Second
+const DefaultUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36"
 
 // New creates a Scraper object
 func New() *Scraper {
+	jar, _ := cookiejar.New(nil)
 	return &Scraper{
-		client: &http.Client{Timeout: 10 * time.Second},
+		bearerToken: bearerToken,
+		userAgent:   DefaultUserAgent,
+		client: &http.Client{
+			Jar:     jar,
+			Timeout: DefaultClientTimeout,
+		},
 	}
+}
+
+func (s *Scraper) setBearerToken(token string) {
+	s.bearerToken = token
+	s.guestToken = ""
+}
+
+// IsGuestToken check if guest token not empty
+func (s *Scraper) IsGuestToken() bool {
+	return s.guestToken != ""
 }
 
 // SetSearchMode switcher
@@ -48,9 +81,10 @@ func (s *Scraper) SetSearchMode(mode SearchMode) *Scraper {
 	return s
 }
 
-// SetSearchMode wrapper for default Scraper
-func SetSearchMode(mode SearchMode) *Scraper {
-	return defaultScraper.SetSearchMode(mode)
+// WithDelay add delay between API requests (in seconds)
+func (s *Scraper) WithDelay(seconds int64) *Scraper {
+	s.delay = seconds
+	return s
 }
 
 // WithReplies enable/disable load timeline with tweet replies
@@ -59,37 +93,90 @@ func (s *Scraper) WithReplies(b bool) *Scraper {
 	return s
 }
 
-// WithReplies wrapper for default Scraper
-func WithReplies(b bool) *Scraper {
-	return defaultScraper.WithReplies(b)
+// client timeout
+func (s *Scraper) WithClientTimeout(timeout time.Duration) *Scraper {
+	s.client.Timeout = timeout
+	return s
 }
 
-// SetProxy set http proxy in the format `http://HOST:PORT`
-func (s *Scraper) SetProxy(proxy string) error {
-	if !strings.HasPrefix(proxy, "http") {
-		return errors.New("only support http(s) protocol")
+// SetProxy
+// set http proxy in the format `http://HOST:PORT`
+// set socket proxy in the format `socks5://HOST:PORT`
+func (s *Scraper) SetProxy(proxyAddr string) error {
+	if proxyAddr == "" {
+		s.client.Transport = &http.Transport{
+			TLSNextProto: make(map[string]func(authority string, c *tls.Conn) http.RoundTripper),
+			DialContext: (&net.Dialer{
+				Timeout: s.client.Timeout,
+			}).DialContext,
+		}
+		s.proxy = ""
+		return nil
 	}
-	urlproxy, err := url.Parse(proxy)
-	if err != nil {
-		return err
-	}
-	s.client = &http.Client{
-		Transport: &http.Transport{
+	if strings.HasPrefix(proxyAddr, "http") {
+		urlproxy, err := url.Parse(proxyAddr)
+		if err != nil {
+			return err
+		}
+		s.client.Transport = &http.Transport{
 			Proxy:        http.ProxyURL(urlproxy),
 			TLSNextProto: make(map[string]func(authority string, c *tls.Conn) http.RoundTripper),
 			DialContext: (&net.Dialer{
-				Timeout: 10 * time.Second,
+				Timeout: s.client.Timeout,
 			}).DialContext,
-		},
+		}
+		s.proxy = proxyAddr
+		return nil
 	}
-	return nil
+	if strings.HasPrefix(proxyAddr, "socks5") {
+		baseDialer := &net.Dialer{
+			Timeout:   s.client.Timeout,
+			KeepAlive: s.client.Timeout,
+		}
+		proxyURL, err := url.Parse(proxyAddr)
+		if err != nil {
+			panic(err)
+		}
+
+		// username password
+		username := proxyURL.User.Username()
+		password, _ := proxyURL.User.Password()
+
+		// ip and port
+		host := proxyURL.Hostname()
+		port := proxyURL.Port()
+
+		var auth *proxy.Auth
+
+		if username != "" || password != "" {
+			auth = &proxy.Auth{
+				User:     username,
+				Password: password,
+			}
+		}
+
+		dialSocksProxy, err := proxy.SOCKS5("tcp", host+":"+port, auth, baseDialer)
+		if err != nil {
+			return errors.New("error creating socks5 proxy :" + err.Error())
+		}
+		if contextDialer, ok := dialSocksProxy.(proxy.ContextDialer); ok {
+			dialContext := contextDialer.DialContext
+			s.client.Transport = &http.Transport{
+				DialContext: dialContext,
+			}
+		} else {
+			return errors.New("failed type assertion to DialContext")
+		}
+		s.proxy = proxyAddr
+		return nil
+	}
+	return errors.New("only support http(s) or socks5 protocol")
 }
 
-// SetProxy wrapper for default Scraper
-func SetProxy(proxy string) error {
-	return defaultScraper.SetProxy(proxy)
+func (s *Scraper) SetUserAgent(userAgent string) {
+	s.userAgent = userAgent
 }
 
-func init() {
-	defaultScraper = New()
+func (s *Scraper) GetUserAgent() string {
+	return s.userAgent
 }

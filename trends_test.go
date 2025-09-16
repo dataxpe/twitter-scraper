@@ -1,13 +1,16 @@
-package twitterscraper
+package twitterscraper_test
 
 import (
 	"testing"
 )
 
 func TestGetTrends(t *testing.T) {
-	trends, err := GetTrends()
+	if skipAuthTest {
+		t.Skip("Skipping test due to environment variable")
+	}
+	trends, err := testScraper.GetTrends()
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if len(trends) != 20 {
@@ -16,7 +19,7 @@ func TestGetTrends(t *testing.T) {
 
 	for _, trend := range trends {
 		if trend == "" {
-			t.Error("Expected trend is not empty")
+			t.Error("Expected trend is empty")
 		}
 	}
 }
