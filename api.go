@@ -8,6 +8,7 @@ import (
 	"time"
 )
 
+// use https://github.com/the-convocation/twitter-scraper nodejs as up2date reference
 const bearerToken string = "AAAAAAAAAAAAAAAAAAAAAFQODgEAAAAAVHTp76lzh3rFzcHbmHVvQxYYpTw%3DckAlMINMjmCwxUcaXbAN4XqJVdgMJaHqNOFgPMK0zN1qLqLQCF"
 
 // RequestAPI get JSON from frontend API and decodes it
