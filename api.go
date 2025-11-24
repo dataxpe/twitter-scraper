@@ -9,7 +9,7 @@ import (
 )
 
 // use https://github.com/the-convocation/twitter-scraper nodejs as up2date reference
-const bearerToken string = "AAAAAAAAAAAAAAAAAAAAAFQODgEAAAAAVHTp76lzh3rFzcHbmHVvQxYYpTw%3DckAlMINMjmCwxUcaXbAN4XqJVdgMJaHqNOFgPMK0zN1qLqLQCF"
+const bearerToken string = "AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA"
 
 // RequestAPI get JSON from frontend API and decodes it
 func (s *Scraper) RequestAPI(req *http.Request, target interface{}) error {
@@ -42,15 +42,20 @@ func (s *Scraper) delayRequest() {
 func (s *Scraper) prepareRequest(req *http.Request) error {
 	req.Header.Set("User-Agent", s.userAgent)
 
-	if !s.isLogged {
+	s.setTransactionId(req)
+	/*if !s.isLogged {
 		if err := s.setGuestToken(req); err != nil {
 			return err
 		}
-	}
+	}*/
 
 	s.setAuthorizationHeader(req)
 	s.setCSRFToken(req)
 
+	return nil
+}
+func (s *Scraper) setTransactionId(req *http.Request) error {
+	req.Header.Set("x-client-transaction-id", "jguUkXquAaIwA1gtMOUN/MvzmMOL4VppTqILZA51JIKaDHWwGhAyqIbhVSEG39wcSnXnWooMl4Zq3/MRdQwA3nWQ6mSqjQ")
 	return nil
 }
 
@@ -88,7 +93,7 @@ func (s *Scraper) handleResponse(resp *http.Response, target interface{}) error 
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("response status %s: %s", resp.Status, content)
+		return fmt.Errorf("API ERROR: %s: %s", http.StatusText(resp.StatusCode), content)
 	}
 
 	if resp.Header.Get("X-Rate-Limit-Remaining") == "0" {

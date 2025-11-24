@@ -69,20 +69,21 @@ type user struct {
 // GetProfile return parsed user profile.
 func (s *Scraper) GetProfile(username string) (Profile, error) {
 	var jsn user
-	req, err := http.NewRequest("GET", "https://api.twitter.com/graphql/96tVxbPqMZDoYB5pmzezKA/UserByScreenName", nil)
+	req, err := http.NewRequest("GET", "https://api.x.com/graphql/-oaLodhGbbnzJBACb1kk2Q/UserByScreenName", nil)
 	if err != nil {
 		return Profile{}, err
 	}
 
 	variables := map[string]interface{}{
-		"screen_name":              username,
-		"withSafetyModeUserFields": true,
+		"screen_name":           username,
+		"withGrokTranslatedBio": false,
 	}
 
 	features := map[string]interface{}{
 		"hidden_profile_subscriptions_enabled":                              true,
+		"profile_label_improvements_pcf_label_in_post_enabled":              true,
+		"responsive_web_profile_redirect_enabled":                           false,
 		"rweb_tipjar_consumption_enabled":                                   true,
-		"responsive_web_graphql_exclude_directive_enabled":                  true,
 		"verified_phone_label_enabled":                                      false,
 		"subscriptions_verification_info_is_identity_verified_enabled":      true,
 		"subscriptions_verification_info_verified_since_enabled":            true,
@@ -92,8 +93,6 @@ func (s *Scraper) GetProfile(username string) (Profile, error) {
 		"creator_subscriptions_tweet_preview_api_enabled":                   true,
 		"responsive_web_graphql_skip_user_profile_image_extensions_enabled": false,
 		"responsive_web_graphql_timeline_navigation_enabled":                true,
-		"payments_enabled": false,
-		"profile_label_improvements_pcf_label_in_post_enabled": true,
 	}
 
 	query := url.Values{}
