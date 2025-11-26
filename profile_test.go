@@ -30,9 +30,28 @@ func TestGetProfileOK(t *testing.T) {
 		Website:        "https://nomadic.name",
 	}
 
+	/*if e := testScraper.LoadTokenStateFromFile("x_tid_state.json"); e != nil {
+		t.Error(e)
+		return
+	}*/
+
+	testScraper.SetTokenState(twitterscraper.TidState{
+		Key: "BXzbpo6bveCCmzg0OZygYVlpHchvM4MNqOrgzqKlNkWgzU3niFjfr6fuXbkgVX74",
+		KeyBytes: []byte{
+			5, 124, 219, 166, 142, 155, 189, 224, 130, 155, 56, 52,
+			57, 156, 160, 97, 89, 105, 29, 200, 111, 51, 131, 13,
+			168, 234, 224, 206, 162, 165, 54, 69, 160, 205, 77, 231,
+			136, 88, 223, 175, 167, 238, 93, 185, 32, 85, 126, 248,
+		},
+		AnimationKey:  "bf663100100",
+		RandomKeyword: "obfiowerehiring",
+		RandomNumber:  3,
+	})
+
 	profile, err := testScraper.GetProfile("nomadic_ua")
 	if err != nil {
 		t.Error(err)
+		return
 	}
 
 	cmpOptions := cmp.Options{

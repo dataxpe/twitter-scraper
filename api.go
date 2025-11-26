@@ -8,9 +8,6 @@ import (
 	"time"
 )
 
-// use https://github.com/the-convocation/twitter-scraper nodejs as up2date reference
-const bearerToken string = "AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA"
-
 // RequestAPI get JSON from frontend API and decodes it
 func (s *Scraper) RequestAPI(req *http.Request, target interface{}) error {
 	s.wg.Wait()
@@ -40,9 +37,23 @@ func (s *Scraper) delayRequest() {
 }
 
 func (s *Scraper) prepareRequest(req *http.Request) error {
-	req.Header.Set("User-Agent", s.userAgent)
+	headers := map[string]string{
+		"Authority":                 "x.com",
+		"Accept-Language":           "en-US,en;q=0.9",
+		"Cache-Control":             "no-cache",
+		"Referer":                   "https://x.com",
+		"User-Agent":                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
+		"X-Twitter-Active-User":     "yes",
+		"X-Twitter-Client-Language": "en",
+	}
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
 
-	s.setTransactionId(req)
+	err := s.setTransactionId(req)
+	if err != nil {
+		return err
+	}
 	/*if !s.isLogged {
 		if err := s.setGuestToken(req); err != nil {
 			return err
@@ -54,8 +65,19 @@ func (s *Scraper) prepareRequest(req *http.Request) error {
 
 	return nil
 }
+
+// setTransactionId sets x-client-transaction-id header
 func (s *Scraper) setTransactionId(req *http.Request) error {
-	req.Header.Set("x-client-transaction-id", "jguUkXquAaIwA1gtMOUN/MvzmMOL4VppTqILZA51JIKaDHWwGhAyqIbhVSEG39wcSnXnWooMl4Zq3/MRdQwA3nWQ6mSqjQ")
+	if s.tidState == nil || s.tidState.Key == "" {
+		return fmt.Errorf("token state key is empty")
+	}
+
+	token, err := GenerateTid(s.tidState, req.Method, req.URL.Path)
+	if err != nil {
+		return err
+	}
+	//log.Printf("%s %s => %s", req.URL.Path, req.Method, token)
+	req.Header.Set("x-client-transaction-id", token)
 	return nil
 }
 

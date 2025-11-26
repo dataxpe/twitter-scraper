@@ -19,11 +19,11 @@ func (s *Scraper) GetTrends() ([]string, error) {
 	var jsn timelineV1
 	curBearerToken := s.bearerToken
 	if curBearerToken != bearerToken2 {
-		s.setBearerToken(bearerToken2)
+		s.SetBearerToken(bearerToken2)
 	}
 	err = s.RequestAPI(req, &jsn)
 	if curBearerToken != bearerToken2 {
-		s.setBearerToken(curBearerToken)
+		s.SetBearerToken(curBearerToken)
 	}
 	if err != nil {
 		return nil, err

@@ -266,13 +266,13 @@ func (s *Scraper) GetTweet(id string) (*Tweet, error) {
 		// https://twitter.com/Twitter/status/1580661436132757506
 		curBearerToken := s.bearerToken
 		if curBearerToken != bearerToken2 {
-			s.setBearerToken(bearerToken2)
+			s.SetBearerToken(bearerToken2)
 		}
 
 		err = s.RequestAPI(req, &conversation)
 
 		if curBearerToken != bearerToken2 {
-			s.setBearerToken(curBearerToken)
+			s.SetBearerToken(curBearerToken)
 		}
 
 		if err != nil {
@@ -335,13 +335,13 @@ func (s *Scraper) GetTweet(id string) (*Tweet, error) {
 		// https://twitter.com/Twitter/status/1580661436132757506
 		curBearerToken := s.bearerToken
 		if curBearerToken != bearerToken2 {
-			s.setBearerToken(bearerToken2)
+			s.SetBearerToken(bearerToken2)
 		}
 
 		err = s.RequestAPI(req, &result)
 
 		if curBearerToken != bearerToken2 {
-			s.setBearerToken(curBearerToken)
+			s.SetBearerToken(curBearerToken)
 		}
 
 		if err != nil {

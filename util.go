@@ -2,7 +2,11 @@ package twitterscraper
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -459,4 +463,63 @@ func urlParse(u string) *url.URL {
 		return nil
 	}
 	return parsed
+}
+
+// GenerateTid generates x-client-transaction-id
+func GenerateTid(state *TidState, method, path string) (string, error) {
+	if state == nil {
+		return "", errors.New("state is empty")
+	}
+	const twitterEpochMs int64 = 1682924400000 // from JS
+
+	nowMs := time.Now().UnixMilli()
+	timeNow := (nowMs - twitterEpochMs) / 1000
+
+	timeBytes := []byte{
+		byte((timeNow >> 0) & 0xFF),
+		byte((timeNow >> 8) & 0xFF),
+		byte((timeNow >> 16) & 0xFF),
+		byte((timeNow >> 24) & 0xFF),
+	}
+
+	keyBytes := state.KeyBytes
+	animationKey := state.AnimationKey
+	randomKeyword := state.RandomKeyword
+	randomNumber := state.RandomNumber
+
+	if len(keyBytes) == 0 {
+		return "", errors.New("key is empty")
+	}
+	if len(animationKey) == 0 {
+		return "", errors.New("animation key is empty")
+	}
+	if len(randomKeyword) == 0 {
+		return "", errors.New("random keyword is empty")
+	}
+
+	payloadStr := fmt.Sprintf("%s!%s!%d%s%s", method, path, timeNow, randomKeyword, animationKey)
+	hash := sha256.Sum256([]byte(payloadStr))
+
+	var rnd [1]byte
+	if _, err := rand.Read(rnd[:]); err != nil {
+		return "", err
+	}
+	randomNum := rnd[0]
+
+	bytesArr := make([]byte, 0, len(keyBytes)+4+16+1)
+	bytesArr = append(bytesArr, keyBytes...)
+	bytesArr = append(bytesArr, timeBytes...)
+	bytesArr = append(bytesArr, hash[:16]...)
+	bytesArr = append(bytesArr, randomNumber)
+
+	out := make([]byte, 0, len(bytesArr)+1)
+	out = append(out, randomNum)
+	for _, b := range bytesArr {
+		out = append(out, b^randomNum)
+	}
+
+	tid := base64.StdEncoding.EncodeToString(out)
+	tid = strings.TrimRight(tid, "=")
+
+	return tid, nil
 }
